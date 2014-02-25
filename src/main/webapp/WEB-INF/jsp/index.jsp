@@ -14,13 +14,14 @@
         <script src="js/myLoc.js"></script>
 
         <script type="text/javascript">
-            
+            var map;
+            var directionsDisplay;
+            var directionsService;
+            var stepDisplay;
+            var markerArray = [];
             
             function initialize() {
-                var directionsDisplay;
-                var directionsService = new google.maps.DirectionsService();
-                var map;
-                
+                directionsService = new google.maps.DirectionsService();
                 directionsDisplay = new google.maps.DirectionsRenderer();
                 var myLatlng = new google.maps.LatLng(lat, longit);
                 var finalDest = new google.maps.LatLng(53.372467,-6.331065);
@@ -52,15 +53,21 @@
                 var request = {
                     origin:myLatlng,
                     destination:finalDest,
-                    travelMode: google.maps.TravelMode.DRIVING};
+                    travelMode: google.maps.TravelMode.WALKING}; // DRIVING
                 
                 directionsService.route(request, function(response, status) {
                   if (status == google.maps.DirectionsStatus.OK) {
-                    directionsDisplay.setDirections(response);
+                        directionsDisplay.setDirections(response);
+                        var warnings = document.getElementById("warnings_panel");
+                        warnings.innerHTML = "" + response.routes[0].warnings + "";
+                        directionsDisplay.setDirections(response);
+                        showSteps(response);
+
                   }
                 });
 
-                
+                // Instantiate an info window to hold step text.
+                stepDisplay = new google.maps.InfoWindow();
                 
                 
                 // -------------- Listneres ------------------------------
@@ -69,9 +76,36 @@
                 google.maps.event.addListener(marker, 'click', function() {
                   infowindow.open(map,marker);
                 });
-                
-                calcRoute();
             }
+            
+            
+            function showSteps(directionResult) {
+            // For each step, place a marker, and add the text to the marker's
+            // info window. Also attach the marker to an array so we
+            // can keep track of it and remove it when calculating new
+            // routes.
+            var myRoute = directionResult.routes[0].legs[0];
+            console.log("Distance: "+myRoute.distance.text);
+            console.log("Duration: "+myRoute.duration.text);
+
+            for (var i = 0; i < myRoute.steps.length; i++) {
+                var marker = new google.maps.Marker({
+                  position: myRoute.steps[i].start_point,
+                  map: map
+                });
+                attachInstructionText(marker, myRoute.steps[i].instructions);
+                markerArray[i] = marker;
+            }
+          }
+
+          function attachInstructionText(marker, text) {
+            google.maps.event.addListener(marker, 'click', function() {
+              stepDisplay.setContent(text);
+              stepDisplay.open(map, marker);
+            });
+          }
+            
+            
 
             // Wait until API is fully loaded, then execute function "initialize""
             function loadScript() {
@@ -87,5 +121,6 @@
         <H2>Hello, ${name}. Your location: <div id="myLocation"></div></H2>
         <br />
         <div id="map_canvas" style="width:50%; height:50%"></div>
+        <p>Result: <div id="warnings_panel"></div></p>
     </body>
 </html>
