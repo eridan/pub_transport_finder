@@ -1,19 +1,42 @@
-<%@page contentType="text/html" pageEncoding="UTF-8"%>
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
-    "http://www.w3.org/TR/html4/loose.dtd">
+<!doctype html>
 
-<html>
+<html lang="en">
     <head>
-        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-        <title>Welcome to Spring Web MVC project</title>
+        <title>The Earth Maps!</title>
+        <meta charset="utf-8" name="viewport" content="initial-scale=1.0, user-scalable=no" />
+        <style type="text/css">
+            html { height: 100% }
+            body { height: 100%; margin: 0; padding: 0 }
+            #map_canvas { height: 40%; margin: 10px; padding: 10px;}
+            #map_canvas1 { height: 40%; margin: 10px; padding: 10px;}
+        </style>
+        
+        <script src="js/myLoc.js"></script>
+
+        <script type="text/javascript">
+            function initialize() {
+                var myOptions = {
+                    zoom: 18,
+                    center: new google.maps.LatLng(lat, longit),
+                    mapTypeId: google.maps.MapTypeId.HYBRID
+                }
+                
+                var map = new google.maps.Map(document.getElementById("map_canvas"), myOptions);
+            }
+
+            // Wait until API is fully loaded, then execute function "initialize""
+            function loadScript() {
+                var script = document.createElement("script");
+                script.type = "text/javascript";
+                script.src = "http://maps.googleapis.com/maps/api/js?key=AIzaSyCUWLNQILG9FY1uHuz0ncQ7sKuUXtS9h9I&sensor=true&callback=initialize";
+                document.body.appendChild(script);
+            }
+        </script>
     </head>
 
     <body>
-        <p>Hello! This is the default welcome page for a Spring Web MVC project.</p>
-        <p><i>To display a different welcome page for this project, modify</i>
-            <tt>index.jsp</tt> <i>, or create your own welcome page then change
-                the redirection in</i> <tt>redirect.jsp</tt> <i>to point to the new
-                welcome page and also update the welcome-file setting in</i>
-            <tt>web.xml</tt>.</p>
+        <H2>Hello, ${name}. Your location: <div id="myLocation"></div></H2>
+        <br />
+        <div id="map_canvas" style="width:50%; height:50%"></div>
     </body>
 </html>
