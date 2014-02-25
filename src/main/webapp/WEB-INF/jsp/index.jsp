@@ -14,14 +14,63 @@
         <script src="js/myLoc.js"></script>
 
         <script type="text/javascript">
+            
+            
             function initialize() {
+                var directionsDisplay;
+                var directionsService = new google.maps.DirectionsService();
+                var map;
+                
+                directionsDisplay = new google.maps.DirectionsRenderer();
+                var myLatlng = new google.maps.LatLng(lat, longit);
+                var finalDest = new google.maps.LatLng(53.372467,-6.331065);
+
+                // map opts
                 var myOptions = {
-                    zoom: 18,
-                    center: new google.maps.LatLng(lat, longit),
-                    mapTypeId: google.maps.MapTypeId.HYBRID
+                    zoom: 17,
+                    center: myLatlng
+                    
+                    // Simple map view to reduce the internet traffic
+                    //mapTypeId: google.maps.MapTypeId.HYBRID
                 }
                 
-                var map = new google.maps.Map(document.getElementById("map_canvas"), myOptions);
+                map = new google.maps.Map(document.getElementById("map_canvas"), myOptions);
+                directionsDisplay.setMap(map);
+                
+                // There might not need to display Info Window for the marker
+                var infoStr = 'Lat: '+lat+' Long: '+longit;
+                var infowindow = new google.maps.InfoWindow({
+                    content: infoStr
+                });
+                
+                var marker = new google.maps.Marker({
+                    position: myLatlng,
+                    map: map,
+                    title: 'You are here'
+                });
+                
+                var request = {
+                    origin:myLatlng,
+                    destination:finalDest,
+                    travelMode: google.maps.TravelMode.DRIVING};
+                
+                directionsService.route(request, function(response, status) {
+                  if (status == google.maps.DirectionsStatus.OK) {
+                    directionsDisplay.setDirections(response);
+                  }
+                });
+
+                
+                
+                
+                // -------------- Listneres ------------------------------
+                
+                // display info Window for the marker
+                google.maps.event.addListener(marker, 'click', function() {
+                  infowindow.open(map,marker);
+                });
+                
+                calcRoute();
             }
 
             // Wait until API is fully loaded, then execute function "initialize""
