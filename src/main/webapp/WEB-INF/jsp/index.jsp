@@ -15,14 +15,8 @@
 
         <script type="text/javascript">
             var map;
-            var directionsDisplay;
-            var directionsService;
-            var stepDisplay;
-            var markerArray = [];
             
             function initialize() {
-                directionsService = new google.maps.DirectionsService();
-                directionsDisplay = new google.maps.DirectionsRenderer();
                 var myLatlng = new google.maps.LatLng(lat, longit);
                 var finalDest = new google.maps.LatLng(53.372467,-6.331065);
 
@@ -30,29 +24,101 @@
                 var myOptions = {
                     zoom: 17,
                     center: myLatlng
-                    
-                    // Simple map view to reduce the internet traffic
-                    //mapTypeId: google.maps.MapTypeId.HYBRID
                 }
                 
                 map = new google.maps.Map(document.getElementById("map_canvas"), myOptions);
-                directionsDisplay.setMap(map);
+                
+                displayPlaces(finalDest,'restaurant');
+                //loadRoute(myLatlng,finalDest);
                 
                 // There might not need to display Info Window for the marker
-                var infoStr = 'Lat: '+lat+' Long: '+longit;
-                var infowindow = new google.maps.InfoWindow({
-                    content: infoStr
-                });
+//                var infoStr = 'Lat: '+lat+' Long: '+longit;
+//                var infowindow = new google.maps.InfoWindow({
+//                    content: infoStr
+//                });
                 
-                var marker = new google.maps.Marker({
-                    position: myLatlng,
-                    map: map,
-                    title: 'You are here'
-                });
+//                var marker = new google.maps.Marker({
+//                    position: myLatlng,
+//                    map: map,
+//                    title: 'You are here'
+//                });
+                
+
+                // Instantiate an info window to hold step text.
+                //stepDisplay = new google.maps.InfoWindow();
+                
+                
+                // -------------- Listneres ------------------------------
+                
+                // display info Window for the marker
+//                google.maps.event.addListener(marker, 'click', function() {
+//                  infowindow.open(map,marker);
+//                });
+            }
+            
+            // display Places
+            function displayPlaces(myLoc, placeType) {
+                var request = {
+                    location: myLoc,
+                    radius: 500,
+                    types: [placeType]
+                };
+                
+                var service = new google.maps.places.PlacesService(map);
+                service.nearbySearch(request, callback);
+            }
+            
+            function callback(results, status, pagination) {
+                if (status != google.maps.places.PlacesServiceStatus.OK) {
+                  return;
+                } else {
+                  createMarkers(results);
+                }
+             }
+            
+            // create Places Markers
+            function createMarkers(places) {
+                var bounds = new google.maps.LatLngBounds();
+
+                for (var i = 0, place; place = places[i]; i++) {
+                    var image = {
+                        url: place.icon,
+                        size: new google.maps.Size(71, 71),
+                        origin: new google.maps.Point(0, 0),
+                        anchor: new google.maps.Point(17, 34),
+                        scaledSize: new google.maps.Size(25, 25)
+                    };
+
+                    var marker = new google.maps.Marker({
+                        map: map,
+                        icon: image,
+                        title: place.name,
+                        position: place.geometry.location
+                    });
+
+                    var infoStr = 'Lat: ' + lat + ' Long: ' + longit;
+                    var infowindow = new google.maps.InfoWindow({
+                        content: infoStr
+                    });
+                    google.maps.event.addListener(marker, 'click', function() {
+                        infowindow.open(map, marker);
+                    });
+                    
+                    document.getElementById('places').innerHTML += '<li>' + place.name + '</li>';
+                    bounds.extend(place.geometry.location);
+                }
+                    map.fitBounds(bounds);
+                }
+            
+            // display Route
+            function loadRoute(originPnt, destPnt) {
+                var directionsService = new google.maps.DirectionsService();
+                var directionsDisplay = new google.maps.DirectionsRenderer();
+                directionsDisplay.setMap(map);
                 
                 var request = {
-                    origin:myLatlng,
-                    destination:finalDest,
+                    origin:originPnt,
+                    destination:destPnt,
                     travelMode: google.maps.TravelMode.WALKING}; // DRIVING
                 
                 directionsService.route(request, function(response, status) {
@@ -61,57 +127,15 @@
                         var warnings = document.getElementById("warnings_panel");
                         warnings.innerHTML = "" + response.routes[0].warnings + "";
                         directionsDisplay.setDirections(response);
-                        showSteps(response);
-
                   }
                 });
-
-                // Instantiate an info window to hold step text.
-                stepDisplay = new google.maps.InfoWindow();
-                
-                
-                // -------------- Listneres ------------------------------
-                
-                // display info Window for the marker
-                google.maps.event.addListener(marker, 'click', function() {
-                  infowindow.open(map,marker);
-                });
             }
-            
-            
-            function showSteps(directionResult) {
-            // For each step, place a marker, and add the text to the marker's
-            // info window. Also attach the marker to an array so we
-            // can keep track of it and remove it when calculating new
-            // routes.
-            var myRoute = directionResult.routes[0].legs[0];
-            console.log("Distance: "+myRoute.distance.text);
-            console.log("Duration: "+myRoute.duration.text);
-
-            for (var i = 0; i < myRoute.steps.length; i++) {
-                var marker = new google.maps.Marker({
-                  position: myRoute.steps[i].start_point,
-                  map: map
-                });
-                attachInstructionText(marker, myRoute.steps[i].instructions);
-                markerArray[i] = marker;
-            }
-          }
-
-          function attachInstructionText(marker, text) {
-            google.maps.event.addListener(marker, 'click', function() {
-              stepDisplay.setContent(text);
-              stepDisplay.open(map, marker);
-            });
-          }
-            
-            
 
             // Wait until API is fully loaded, then execute function "initialize""
             function loadScript() {
                 var script = document.createElement("script");
                 script.type = "text/javascript";
-                script.src = "http://maps.googleapis.com/maps/api/js?key=AIzaSyCUWLNQILG9FY1uHuz0ncQ7sKuUXtS9h9I&sensor=true&callback=initialize";
+                script.src = "http://maps.googleapis.com/maps/api/js?key=AIzaSyCUWLNQILG9FY1uHuz0ncQ7sKuUXtS9h9I&libraries=places&sensor=true&callback=initialize";
                 document.body.appendChild(script);
             }
         </script>
@@ -122,5 +146,6 @@
         <br />
         <div id="map_canvas" style="width:50%; height:50%"></div>
         <p>Result: <div id="warnings_panel"></div></p>
+    <ul id="places"></ul>
     </body>
 </html>
