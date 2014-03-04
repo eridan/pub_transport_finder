@@ -5,6 +5,8 @@
         <meta charset="utf-8">
         <link rel="stylesheet" href="css/styles.css">
         <title>Place search pagination</title>
+        <script src="http://code.jquery.com/jquery-1.11.0.min.js"></script>
+        <!--<script src="http://code.jquery.com/jquery-migrate-1.2.1.min.js"></script>-->
         <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCUWLNQILG9FY1uHuz0ncQ7sKuUXtS9h9I&libraries=places&sensor=false"></script>
         <script src="js/pathCalc.js"></script>
     </head>

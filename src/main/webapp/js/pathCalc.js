@@ -1,6 +1,54 @@
 var map, placesList;
+var myLatLong;
 
 function initialize() {
+//    drawMap();
+//    setMyCurrentLoc();
+    var FunctionOne = function() {
+        var
+                a = $.Deferred(),
+                b = $.Deferred();
+
+        // some fake asyc task
+        setTimeout(function() {
+            console.debug('drawing map');
+            drawMap();
+            a.resolve();
+            console.debug('drawing map. Done');
+        }, Math.random() * 4000);
+
+        // some other fake asyc task
+        setTimeout(function() {
+            console.debug('setting current location');
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function(position) {
+                    myLatLong = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
+                    b.resolve();
+                });
+            } else {
+                alert('oops, no geolocation support');
+            }
+            console.debug('setting current location. Done');
+        }, Math.random() * 4000);
+
+        return $.Deferred(function(def) {
+            $.when(a, b).done(function() {
+                def.resolve();
+            });
+        });
+    };
+
+    var FunctionTwo = function() {
+        console.log('Init is completed. Starting with a serious stuff now');
+        console.log('I am Serious now ... ');
+        console.debug(myLatLong.toSource());
+    };
+
+    FunctionOne().done(FunctionTwo);
+
+}
+
+function drawMap() {
     var home = new google.maps.LatLng(53.4028352, -6.4072838);
 
     map = new google.maps.Map(document.getElementById('map-canvas'), {
@@ -64,6 +112,16 @@ function createMarkers(places) {
         bounds.extend(place.geometry.location);
     }
     map.fitBounds(bounds);
+}
+
+function setMyCurrentLoc() {
+    if(navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(position) {
+            myLatLong = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
+        });
+    } else {
+        alert('oops, no geolocation support');
+    }
 }
 
 google.maps.event.addDomListener(window, 'load', initialize);
