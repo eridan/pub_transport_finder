@@ -1,13 +1,11 @@
 var map, placesList;
-var myLatLong;
+var myLatLong, searchResults;
 
 function initialize() {
-//    drawMap();
-//    setMyCurrentLoc();
     var FunctionOne = function() {
         var
-                a = $.Deferred(),
-                b = $.Deferred();
+        a = $.Deferred(),
+        b = $.Deferred();
 
         // some fake asyc task
         setTimeout(function() {
@@ -42,28 +40,73 @@ function initialize() {
         console.log('Init is completed. Starting with a serious stuff now');
         console.log('I am Serious now ... ');
         console.debug(myLatLong.toSource());
+//        var finalDest = new google.maps.LatLng(53.372467,-6.331065);
+//        loadRoute(myLatLong,finalDest);
+//        createResultMap();
     };
 
     FunctionOne().done(FunctionTwo);
+}
 
+function createResultMap(places) {
+    console.debug(places[0].toSource());
+    for (var i = 0, place; place = places[i]; i++) {
+        placesList.innerHTML += '<li>' + place.name + '</li>';
+        createMarker(place.geometry.location,place.name);
+    }
+}
+
+function createMarker(pos, t) {
+    var marker = new google.maps.Marker({       
+        position: pos, 
+        map: map,  // google.maps.Map 
+        title: t      
+    });
+    
+     var infowindow = new google.maps.InfoWindow();
+     
+    
+    google.maps.event.addListener(marker, 'click', function() {
+        console.debug("I am marker " + marker.title);
+        infowindow.setContent(marker.title);
+        infowindow.open(marker.get('map'), marker);
+    }); 
+    return marker;  
+}
+
+// display Route
+function loadRoute(originPnt, destPnt) {
+    var directionsService = new google.maps.DirectionsService();
+    var directionsDisplay = new google.maps.DirectionsRenderer();
+    directionsDisplay.setMap(map);
+
+    var request = {
+        origin:originPnt,
+        destination:destPnt,
+        travelMode: google.maps.TravelMode.WALKING}; // DRIVING
+
+    directionsService.route(request, function(response, status) {
+      if (status == google.maps.DirectionsStatus.OK) {
+            directionsDisplay.setDirections(response);
+//            var warnings = document.getElementById("warnings_panel");
+//            warnings.innerHTML = "" + response.routes[0].warnings + "";
+//            directionsDisplay.setDirections(response);
+      }
+    });
 }
 
 function drawMap() {
     var home = new google.maps.LatLng(53.4028352, -6.4072838);
-
     map = new google.maps.Map(document.getElementById('map-canvas'), {
         center: home,
         zoom: 17
     });
-
     var request = {
         location: home,
         radius: 500,
         types: ['store']
     };
-
     placesList = document.getElementById('places');
-
     var service = new google.maps.places.PlacesService(map);
     service.nearbySearch(request, callback);
 }
@@ -72,13 +115,12 @@ function callback(results, status, pagination) {
     if (status != google.maps.places.PlacesServiceStatus.OK) {
         return;
     } else {
-        createMarkers(results);
+        createResultMap(results);
+//        createMarkers(results);
 
         if (pagination.hasNextPage) {
             var moreButton = document.getElementById('more');
-
             moreButton.disabled = false;
-
             google.maps.event.addDomListenerOnce(moreButton, 'click',
                     function() {
                         moreButton.disabled = true;
@@ -89,29 +131,49 @@ function callback(results, status, pagination) {
 }
 
 function createMarkers(places) {
-    var bounds = new google.maps.LatLngBounds();
+//    var bounds = new google.maps.LatLngBounds();
 
+    var markerList = new Array();
     for (var i = 0, place; place = places[i]; i++) {
-        var image = {
-            url: place.icon,
-            size: new google.maps.Size(71, 71),
-            origin: new google.maps.Point(0, 0),
-            anchor: new google.maps.Point(17, 34),
-            scaledSize: new google.maps.Size(25, 25)
-        };
+//        var image = {
+//            url: place.icon,
+//            size: new google.maps.Size(71, 71),
+//            origin: new google.maps.Point(0, 0),
+//            anchor: new google.maps.Point(17, 34),
+//            scaledSize: new google.maps.Size(25, 25)
+//        };
 
         var marker = new google.maps.Marker({
             map: map,
-            icon: image,
+//            icon: image,
             title: place.name,
             position: place.geometry.location
         });
-
-        placesList.innerHTML += '<li>' + place.name + '</li>';
-
-        bounds.extend(place.geometry.location);
+        
+        markerList.push(marker);
+        console.debug(markerList.toSource());
+//        placesList.innerHTML += '<li>' + place.name + '</li>';
+//        bounds.extend(place.geometry.location);
     }
-    map.fitBounds(bounds);
+    
+    //addInfoWindow(markList);
+//    map.fitBounds(bounds);
+}
+
+function addInfoWindow(markList) {
+    for(var marker in markList) {
+        placesList.innerHTML += '<li>' + marker.getTitle + '</li>';
+//        var infowindow = new google.maps.InfoWindow({
+//            content: marker.title
+//        });
+//                
+//        // -------------- Listneres ------------------------------
+//                
+//        // display info Window for the marker
+//        google.maps.event.addListener(marker, 'click', function() {
+//          infowindow.open(map,marker);
+//        });
+    }
 }
 
 function setMyCurrentLoc() {
