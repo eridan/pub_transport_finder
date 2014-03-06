@@ -1,7 +1,9 @@
 var map, placesList;
 var myLatLong, searchResults;
+var places, placesLLArray = new Array();
 
 function initialize() {
+    
     var FunctionOne = function() {
         var
         a = $.Deferred(),
@@ -10,8 +12,7 @@ function initialize() {
         // some fake asyc task
         setTimeout(function() {
             console.debug('drawing map');
-            drawMap();
-            a.resolve();
+            drawMap(a);
             console.debug('drawing map. Done');
         }, Math.random() * 4000);
 
@@ -38,8 +39,11 @@ function initialize() {
 
     var FunctionTwo = function() {
         console.log('Init is completed. Starting with a serious stuff now');
-        console.log('I am Serious now ... ');
         console.debug(myLatLong.toSource());
+        
+        createResultMap();
+        var closestPlace = calculateDistances();
+        
 //        var finalDest = new google.maps.LatLng(53.372467,-6.331065);
 //        loadRoute(myLatLong,finalDest);
 //        createResultMap();
@@ -48,10 +52,82 @@ function initialize() {
     FunctionOne().done(FunctionTwo);
 }
 
-function createResultMap(places) {
+function calculateDistances() {
+    var service = new google.maps.DistanceMatrixService();
+    var shortestDist = 999999;
+    var shortestLatLong;
+    
+    service.getDistanceMatrix(
+            {
+                origins: [myLatLong],
+                destinations: placesLLArray,
+                travelMode: google.maps.TravelMode.DRIVING,
+                unitSystem: google.maps.UnitSystem.METRIC,
+                avoidHighways: false,
+                avoidTolls: false
+            }, function(response, status) {
+        if (status != google.maps.DistanceMatrixStatus.OK) {
+            alert('Error was: ' + status);
+        } else {
+            var origins = response.originAddresses;
+            var destinations = response.destinationAddresses;
+//    var outputDiv = document.getElementById('outputDiv');
+//    outputDiv.innerHTML = '';
+//    deleteOverlays();
+
+            for (var i = 0; i < origins.length; i++) {
+                var results = response.rows[i].elements;
+//      addMarker(origins[i], false);
+                for (var j = 0; j < results.length; j++) {
+//        addMarker(destinations[j], true);
+                    if(results[j].distance.value < shortestDist) {
+                       shortestDist = results[j].distance.value;
+                        console.debug("Setting new distance: "+shortestDist);
+                       shortestLatLong = destinations[j];
+                        console.debug("Address: "+shortestLatLong);
+                    }
+                    console.debug(origins[i] + ' to ' + destinations[j]
+                            + ': ' + results[j].distance.value + ' in '
+                            + results[j].duration.text + '<br>');
+                }
+            }
+        console.warn("The closest place to you is: "+shortestLatLong);
+        }
+    });
+    
+}
+
+
+
+
+function drawMap(a) {
+    var home = new google.maps.LatLng(53.4028352, -6.4072838);
+    map = new google.maps.Map(document.getElementById('map-canvas'), {
+        center: home,
+        zoom: 17
+    });
+    var request = {
+        location: home,
+        radius: 500,
+        types: ['store']
+    };
+    placesList = document.getElementById('places');
+    var service = new google.maps.places.PlacesService(map);
+    service.nearbySearch(request, function(results, status, pagination) {
+        if (status != google.maps.places.PlacesServiceStatus.OK) {
+            return;
+        } else {
+            places = results;
+            a.resolve();
+        }
+    });
+}
+
+function createResultMap() {
     console.debug(places[0].toSource());
     var bounds = new google.maps.LatLngBounds();
     for (var i = 0, place; place = places[i]; i++) {
+        placesLLArray.push(place.geometry.location);
         placesList.innerHTML += '<li>' + place.name + '</li>';
         createMarker(place.geometry.location,place.name);
         bounds.extend(place.geometry.location);
@@ -60,21 +136,18 @@ function createResultMap(places) {
 }
 
 function createMarker(pos, t) {
-    var marker = new google.maps.Marker({       
-        position: pos, 
-        map: map,  // google.maps.Map 
-        title: t      
+    var marker = new google.maps.Marker({
+        position: pos,
+        map: map, // google.maps.Map 
+        title: t
     });
-    
-     var infowindow = new google.maps.InfoWindow();
-     
-    
+    var infowindow = new google.maps.InfoWindow();
     google.maps.event.addListener(marker, 'click', function() {
         console.debug("I am marker " + marker.title);
         infowindow.setContent(marker.title);
         infowindow.open(marker.get('map'), marker);
-    }); 
-    return marker;  
+    });
+    return marker;
 }
 
 // display Route
@@ -96,87 +169,6 @@ function loadRoute(originPnt, destPnt) {
 //            directionsDisplay.setDirections(response);
       }
     });
-}
-
-function drawMap() {
-    var home = new google.maps.LatLng(53.4028352, -6.4072838);
-    map = new google.maps.Map(document.getElementById('map-canvas'), {
-        center: home,
-        zoom: 17
-    });
-    var request = {
-        location: home,
-        radius: 500,
-        types: ['store']
-    };
-    placesList = document.getElementById('places');
-    var service = new google.maps.places.PlacesService(map);
-    service.nearbySearch(request, callback);
-}
-
-function callback(results, status, pagination) {
-    if (status != google.maps.places.PlacesServiceStatus.OK) {
-        return;
-    } else {
-        createResultMap(results);
-//        createMarkers(results);
-
-        if (pagination.hasNextPage) {
-            var moreButton = document.getElementById('more');
-            moreButton.disabled = false;
-            google.maps.event.addDomListenerOnce(moreButton, 'click',
-                    function() {
-                        moreButton.disabled = true;
-                        pagination.nextPage();
-                    });
-        }
-    }
-}
-
-function createMarkers(places) {
-//    var bounds = new google.maps.LatLngBounds();
-
-    var markerList = new Array();
-    for (var i = 0, place; place = places[i]; i++) {
-//        var image = {
-//            url: place.icon,
-//            size: new google.maps.Size(71, 71),
-//            origin: new google.maps.Point(0, 0),
-//            anchor: new google.maps.Point(17, 34),
-//            scaledSize: new google.maps.Size(25, 25)
-//        };
-
-        var marker = new google.maps.Marker({
-            map: map,
-//            icon: image,
-            title: place.name,
-            position: place.geometry.location
-        });
-        
-        markerList.push(marker);
-        console.debug(markerList.toSource());
-//        placesList.innerHTML += '<li>' + place.name + '</li>';
-//        bounds.extend(place.geometry.location);
-    }
-    
-    //addInfoWindow(markList);
-//    map.fitBounds(bounds);
-}
-
-function addInfoWindow(markList) {
-    for(var marker in markList) {
-        placesList.innerHTML += '<li>' + marker.getTitle + '</li>';
-//        var infowindow = new google.maps.InfoWindow({
-//            content: marker.title
-//        });
-//                
-//        // -------------- Listneres ------------------------------
-//                
-//        // display info Window for the marker
-//        google.maps.event.addListener(marker, 'click', function() {
-//          infowindow.open(map,marker);
-//        });
-    }
 }
 
 function setMyCurrentLoc() {
