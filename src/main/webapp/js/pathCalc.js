@@ -50,10 +50,13 @@ function initialize() {
 
 function createResultMap(places) {
     console.debug(places[0].toSource());
+    var bounds = new google.maps.LatLngBounds();
     for (var i = 0, place; place = places[i]; i++) {
         placesList.innerHTML += '<li>' + place.name + '</li>';
         createMarker(place.geometry.location,place.name);
+        bounds.extend(place.geometry.location);
     }
+    map.fitBounds(bounds);
 }
 
 function createMarker(pos, t) {
