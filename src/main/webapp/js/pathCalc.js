@@ -1,6 +1,8 @@
 var map, placesList;
 var myLatLong, searchResults;
 var places, placesLLArray = new Array();
+var home = new google.maps.LatLng(53.4031145,-6.4214445);
+
 
 function initialize() {
     
@@ -42,7 +44,7 @@ function initialize() {
         console.debug(myLatLong.toSource());
         
         createResultMap();
-        var closestPlace = calculateDistances();
+        calculateDistances();
         
 //        var finalDest = new google.maps.LatLng(53.372467,-6.331065);
 //        loadRoute(myLatLong,finalDest);
@@ -55,19 +57,19 @@ function initialize() {
 function calculateDistances() {
     var service = new google.maps.DistanceMatrixService();
     var shortestDist = 999999;
-    var shortestLatLong;
+    var locAddr, finalLatLong;
     
     service.getDistanceMatrix(
             {
-                origins: [myLatLong],
+                origins: [home],
                 destinations: placesLLArray,
-                travelMode: google.maps.TravelMode.DRIVING,
+                travelMode: google.maps.TravelMode.WALKING,
                 unitSystem: google.maps.UnitSystem.METRIC,
-                avoidHighways: false,
-                avoidTolls: false
+                avoidHighways: true,
+                avoidTolls: true
             }, function(response, status) {
         if (status != google.maps.DistanceMatrixStatus.OK) {
-            alert('Error was: ' + status);
+            alert('getDistanceMatrix Error was: ' + status);
         } else {
             var origins = response.originAddresses;
             var destinations = response.destinationAddresses;
@@ -83,37 +85,47 @@ function calculateDistances() {
                     if(results[j].distance.value < shortestDist) {
                        shortestDist = results[j].distance.value;
                         console.debug("Setting new distance: "+shortestDist);
-                       shortestLatLong = destinations[j];
-                        console.debug("Address: "+shortestLatLong);
+                       locAddr = destinations[j];
+                        console.debug("Address: "+locAddr);
+                        finalLatLong = placesLLArray[j];
+                        console.debug("LatLong: "+finalLatLong);
                     }
                     console.debug(origins[i] + ' to ' + destinations[j]
                             + ': ' + results[j].distance.value + ' in '
-                            + results[j].duration.text + '<br>');
+                            + results[j].duration.text + ' latlong: '+placesLLArray[j]+'<br>');
                 }
             }
-        console.warn("The closest place to you is: "+shortestLatLong);
+            console.warn("The closest place to you is: "+locAddr);
+            loadRoute(home,finalLatLong);
+//            var geocoder = new google.maps.Geocoder();
+//            geocoder.geocode({'address':locAddr},function(results, status) {
+//                if(status == google.maps.GeocoderStatus.OK) {
+//                    console.warn(results[0].geometry.location);
+//                    loadRoute(home,results[0].geometry.location);
+//                } else {
+//                    alert("Geocode was not successful for the followiing reason: "+status);
+//                }
+//            });
         }
     });
     
 }
 
-
-
-
 function drawMap(a) {
-    var home = new google.maps.LatLng(53.4028352, -6.4072838);
     map = new google.maps.Map(document.getElementById('map-canvas'), {
         center: home,
         zoom: 17
     });
     var request = {
         location: home,
-        radius: 500,
-        types: ['store']
+        radius: 2200,
+        types: ['food'],
+//        types: ['restaurant|cafe|bar|bakery|food|grocery_or_supermarket|meal_delivery|meal_takeaway|shopping_mall']
     };
     placesList = document.getElementById('places');
     var service = new google.maps.places.PlacesService(map);
     service.nearbySearch(request, function(results, status, pagination) {
+//    service.radarSearch(request, function(results, status, pagination) {
         if (status != google.maps.places.PlacesServiceStatus.OK) {
             return;
         } else {
