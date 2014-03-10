@@ -5,54 +5,97 @@ var home = new google.maps.LatLng(53.4031145,-6.4214445);
 
 
 function initialize() {
-    
-    var FunctionOne = function() {
-        var
-        a = $.Deferred(),
-        b = $.Deferred();
+    console.log('Started…');
 
-        // some fake asyc task
-        setTimeout(function() {
-            console.debug('drawing map');
-            drawMap(a);
-            console.debug('drawing map. Done');
-        }, Math.random() * 4000);
-
-        // some other fake asyc task
-        setTimeout(function() {
-            console.debug('setting current location');
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(function(position) {
-                    myLatLong = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
-                    b.resolve();
-                });
-            } else {
-                alert('oops, no geolocation support');
-            }
-            console.debug('setting current location. Done');
-        }, Math.random() * 4000);
-
-        return $.Deferred(function(def) {
-            $.when(a, b).done(function() {
-                def.resolve();
-            });
+    var promise1 = getCurLatLong();
+    promise1.done(function() {
+        console.log("LatLong is set");
+        console.warn(myLatLong);
+        
+        var promise2 = drawMapFunc();
+        promise2.done(function() {
+            console.log("Second Msg was shown");
+            console.warn(myLatLong);
+            theEndFunc();
         });
-    };
+    });
+    
 
-    var FunctionTwo = function() {
-        console.log('Init is completed. Starting with a serious stuff now');
-        console.debug(myLatLong.toSource());
-        
-        createResultMap();
-        calculateDistances();
-        
-//        var finalDest = new google.maps.LatLng(53.372467,-6.331065);
-//        loadRoute(myLatLong,finalDest);
-//        createResultMap();
-    };
+    function getCurLatLong() {
+        var deferred = $.Deferred();
 
-    FunctionOne().done(FunctionTwo);
+        setTimeout(function() {
+            setMyCurrentLoc(deferred);
+        }, 100);
+
+        return deferred.promise();
+    }
+    
+    function drawMapFunc() {
+        var deferred = $.Deferred();
+
+        setTimeout(function() {
+            console.log("Drawing the Map");
+            drawMap(deferred);
+        }, 400);
+
+        return deferred.promise();
+    }
+} // end of Initialize
+
+function theEndFunc() {
+    createResultMap();
+//    calculateDistances();
 }
+    
+    
+    
+    
+    
+    
+//    var FunctionOne = function() {
+//        var
+//        a = $.Deferred(),
+//        b = $.Deferred();
+//
+//        // some fake asyc task
+//        setTimeout(function() {
+//            console.debug('drawing map');
+//            drawMap(a);
+//            console.debug('drawing map. Done');
+//        }, Math.random() * 4000);
+//
+//        // some other fake asyc task
+//        setTimeout(function() {
+//            console.debug('setting current location');
+//            if (navigator.geolocation) {
+//                navigator.geolocation.getCurrentPosition(function(position) {
+//                    myLatLong = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
+//                    b.resolve();
+//                });
+//            } else {
+//                alert('oops, no geolocation support');
+//            }
+//            console.debug('setting current location. Done');
+//        }, Math.random() * 4000);
+//
+//        return $.Deferred(function(def) {
+//            $.when(a, b).done(function() {
+//                def.resolve();
+//            });
+//        });
+//    };
+//
+//    var FunctionTwo = function() {
+//        console.log('Init is completed. Starting with a serious stuff now');
+//        console.debug(myLatLong.toSource());
+//        
+//        createResultMap();
+//        calculateDistances();
+//    };
+//
+//    FunctionOne().done(FunctionTwo);
+//}
 
 function calculateDistances() {
     var service = new google.maps.DistanceMatrixService();
@@ -61,7 +104,7 @@ function calculateDistances() {
     
     service.getDistanceMatrix(
             {
-                origins: [home],
+                origins: [myLatLong],
                 destinations: placesLLArray,
                 travelMode: google.maps.TravelMode.WALKING,
                 unitSystem: google.maps.UnitSystem.METRIC,
@@ -96,7 +139,7 @@ function calculateDistances() {
                 }
             }
             console.warn("The closest place to you is: "+locAddr);
-            loadRoute(home,finalLatLong);
+            loadRoute(myLatLong,finalLatLong);
 //            var geocoder = new google.maps.Geocoder();
 //            geocoder.geocode({'address':locAddr},function(results, status) {
 //                if(status == google.maps.GeocoderStatus.OK) {
@@ -113,11 +156,11 @@ function calculateDistances() {
 
 function drawMap(a) {
     map = new google.maps.Map(document.getElementById('map-canvas'), {
-        center: home,
+        center: myLatLong,
         zoom: 17
     });
     var request = {
-        location: home,
+        location: myLatLong,
         radius: 2200,
         types: ['food'],
 //        types: ['restaurant|cafe|bar|bakery|food|grocery_or_supermarket|meal_delivery|meal_takeaway|shopping_mall']
@@ -125,7 +168,6 @@ function drawMap(a) {
     placesList = document.getElementById('places');
     var service = new google.maps.places.PlacesService(map);
     service.nearbySearch(request, function(results, status, pagination) {
-//    service.radarSearch(request, function(results, status, pagination) {
         if (status != google.maps.places.PlacesServiceStatus.OK) {
             return;
         } else {
@@ -136,6 +178,7 @@ function drawMap(a) {
 }
 
 function createResultMap() {
+//    alert("Place name: "+places[0].name);
     console.debug(places[0].toSource());
     var bounds = new google.maps.LatLngBounds();
     for (var i = 0, place; place = places[i]; i++) {
@@ -183,10 +226,11 @@ function loadRoute(originPnt, destPnt) {
     });
 }
 
-function setMyCurrentLoc() {
+function setMyCurrentLoc(a) {
     if(navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(function(position) {
             myLatLong = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
+            a.resolve();
         });
     } else {
         alert('oops, no geolocation support');
